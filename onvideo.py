@@ -13,11 +13,12 @@ args = parser.parse_args()
 print(args)
 
 # training of the model
-if not os.path.exists('training_images'):
-    create_training_images()
+if not os.path.exists('video_images'):
+    os.mkdir('video_images')
+    create_training_images(args.target, output_path='video_images')
 
 if not os.path.exists('models/N2V/weights_best.h5'):
-    training_args = generate_args(data_path='training_images')
+    training_args = generate_args(data_path='video_images')
     model, X, X_val = prepare_training_data(training_args)
     history = train_model(model, X, X_val)
 # apply on video
