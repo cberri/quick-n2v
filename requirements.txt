@@ -1,0 +1,2 @@
+-e git://github.com/aiporre/video_tools.git#egg=video_tools
+
