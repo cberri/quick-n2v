@@ -15,6 +15,11 @@ parser.add_argument('--output', metavar='output', type=str, default = None,
                 help='output directory full path')
 parser.add_argument('--train', metavar='train', type=str, default='n',
                 help='force train? y or n (default=n)')
+parser.add_argument('--fileName', metavar='fileName', type=str, default='*.png',
+                help='file name ending (default=*.png)')
+parser.add_argument('--dims', metavar='dims', type=str, default='XY',
+                help='dimensions of the image (XY,YX,XYC,YXC, default=XY)')
+
 args = parser.parse_args()
 print(args)
 
@@ -33,6 +38,7 @@ def denoise_images(images_path, output_path):
     model_name = 'N2V'
     basedir = 'models'
     model = N2V(config=None, name=model_name, basedir=basedir)
+    warning_print = False
     for f in tqdm(os.listdir(images_path)):
         if os.path.isfile(os.path.join(images_path,f)) and f.endswith('.tif'):
             img = imread(os.path.join(images_path,f))
@@ -43,8 +49,13 @@ def denoise_images(images_path, output_path):
             else:
                 print('Invalid format image: ', img.shape, 'formats supported YX and YXC')
                 break
+            if 'C' in axes and img.shape[-1]==4:
+                if not warning_print:
+                    print('Warning: alpha channels will be removed from all images.')
+                    warning_print = True
+                img = img[...,:3]
             pred = model.predict(img, axes=axes)
-            f_out = os.path.join(output_path, f.replace('.tif','.png'))
+            f_out = os.path.join(output_path, f.replace(args.fileName))
             print('pred.max(): ', pred.max(), 'pred.min()', pred.min())
             print('saving file: ', f_out)
             imsave(f_out, clip(pred, 0.0, 1.0), cmap='gray')
@@ -53,7 +64,7 @@ def denoise_images(images_path, output_path):
 output_path = create_output_directory(args.output)
 
 if args.train=='y' or not os.path.exists('models/N2V/weights_best.h5'):
-    training_args = generate_args(data_path=args.target)
+    training_args = generate_args(data_path=args.target, fileName=args.fileName, dims=args.dims)
     model, X, X_val = prepare_training_data(training_args)
     history = train_model(model, X, X_val)
 # apply on video
