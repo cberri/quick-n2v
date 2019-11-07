@@ -9,10 +9,12 @@ import numpy as np
 
 
 parser = argparse.ArgumentParser(description='Denoise video with N2V')
-parser.add_argument('--target', metavar='target', type=str,
+parser.add_argument('--target', metavar='target', type=str, default='video_images',
                 help='target directory containing png images full path')
 parser.add_argument('--output', metavar='output', type=str, default = None,
                 help='output directory full path')
+parser.add_argument('--train', metavar='train', type=str, default='n',
+                help='force train? y or n (default=n)')
 args = parser.parse_args()
 print(args)
 
@@ -22,12 +24,17 @@ def create_output_directory(output_path):
     if not os.path.exists(output_path):
         os.mkdir(output_path)
     return output_path
+def clip(pred, lb, ub):
+    pred = (pred-pred.min())/(pred.max()-pred.min())
+    pred = (ub-lb)*pred + lb
+    return pred
+
 def denoise_images(images_path, output_path):
     model_name = 'N2V'
     basedir = 'models'
     model = N2V(config=None, name=model_name, basedir=basedir)
     for f in tqdm(os.listdir(images_path)):
-        if os.path.isfile(os.path.join(images_path,f)) and f.endswith('.png'):
+        if os.path.isfile(os.path.join(images_path,f)) and f.endswith('.tif'):
             img = imread(os.path.join(images_path,f))
             if len(img.shape)==2:
                 axes = 'YX'
@@ -37,14 +44,16 @@ def denoise_images(images_path, output_path):
                 print('Invalid format image: ', img.shape, 'formats supported YX and YXC')
                 break
             pred = model.predict(img, axes=axes)
-            f_out = os.path.join(output_path, f)
-            imsave(f_out, np.clip(pred, 0.0, 1.0), cmap='gray')
+            f_out = os.path.join(output_path, f.replace('.tif','.png'))
+            print('pred.max(): ', pred.max(), 'pred.min()', pred.min())
+            print('saving file: ', f_out)
+            imsave(f_out, clip(pred, 0.0, 1.0), cmap='gray')
 
 # Creating the path of denoised images
 output_path = create_output_directory(args.output)
 
-if not os.path.exists('models/N2V/weights_best.h5'):
-    training_args = generate_args(data_path='video_images')
+if args.train=='y' or not os.path.exists('models/N2V/weights_best.h5'):
+    training_args = generate_args(data_path=args.target)
     model, X, X_val = prepare_training_data(training_args)
     history = train_model(model, X, X_val)
 # apply on video
