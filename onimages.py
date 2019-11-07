@@ -53,6 +53,7 @@ def denoise_images(images_path, output_path):
                 if not warning_print:
                     print('Warning: alpha channels will be removed from all images.')
                     warning_print = True
+                    print('Org. shape: ', img.shape, 'New shape:', img[...,:3].shape)
                 img = img[...,:3]
             pred = model.predict(img, axes=axes)
             f_out = os.path.join(output_path, f.replace(args.fileName))
