@@ -19,6 +19,8 @@ parser.add_argument('--fileName', metavar='fileName', type=str, default='*.png',
                 help='file name ending (default=*.png)')
 parser.add_argument('--dims', metavar='dims', type=str, default='XY',
                 help='dimensions of the image (XY,YX,XYC,YXC, default=XY)')
+parser.add_argument('--clipping', metavar='clipping', type=str, default='minmax',
+                help='clipping approach (imageclip,minmax,zeromax default=minmax) \n \t imageclip: make output image in the same range input. \n \t minmax: apply min max normalization and makes between 0 and 1. \n \t zeromax: clip between 0 and max of input image')
 
 args = parser.parse_args()
 print(args)
@@ -30,6 +32,9 @@ def create_output_directory(output_path):
         os.mkdir(output_path)
     return output_path
 def clip(pred, lb, ub):
+    if args.clipping == 'zeromax':
+        pred = pred.copy()
+        pred[pred<0] = 0
     pred = (pred-pred.min())/(pred.max()-pred.min())
     pred = (ub-lb)*pred + lb
     return pred
@@ -44,7 +49,7 @@ def denoise_images(images_path, output_path):
         if os.path.isfile(os.path.join(images_path,f)) and f.endswith(args.fileName.replace('*','')):
             img = imread(os.path.join(images_path,f))
 
-            # if args.dims = N means Not Defined. Then the program decides which is the one.            
+            # if args.dims = N means Not Defined. Then the program decides which is the one.
             if len(img.shape)==2 and args.dims=='N':
                 axes = 'YX'
             elif len(img.shape)==3 and args.dims=='N':
@@ -65,11 +70,25 @@ def denoise_images(images_path, output_path):
                     print('Org. shape: ', img.shape, 'New shape:', img[...,0].shape)
                 img = img[...,0] # taking the red channel
             pred = model.predict(img, axes=axes)
-            f_out = os.path.join(output_path, f.replace(args.fileName.replace('*',''),'.png'))
+            f_out_d = os.path.join(output_path, 'Denois-' + f.replace(args.fileName.replace('*',''),'.png'))
+            f_out_s = os.path.join(output_path, 'Sample-' + f.replace(args.fileName.replace('*',''),'.png'))
             print('pred.max(): ', pred.max(), 'pred.min()', pred.min())
-            print('saving file: ', f_out)
-            imsave(f_out, clip(pred, 0.0, 1.0), cmap='gray')
-
+            print('img.max(): ', img.max(), 'img.min()', img.min())
+            if args.clipping == 'imageclip':
+                ub = img.max()
+                lb = img.min()
+            elif args.clipping == 'zeromax':
+                ub = img.max()
+                lb = 0
+            elif args.clipping == 'minmax':
+                ub = 1
+                lb = 0
+            else:
+                raise ValueException('Invalid input value clipping not supported.' + args.clipping + '. Check --help for datails.')
+            print('saving file denoised : ', f_out_d)
+            imsave(f_out_d, clip(pred, lb, ub), cmap='gray')
+            print('saving file input to network: ', f_out_s)
+            imsave(f_out_s, clip(img, lb, ub), cmap='gray')
 # Creating the path of denoised images
 output_path = create_output_directory(args.output)
 print('Output path is: ', output_path )
