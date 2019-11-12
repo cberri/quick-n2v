@@ -1,6 +1,6 @@
 import argparse
 import os
-
+import tifffile as tiff
 from tqdm import tqdm
 from vtools import generate_args, prepare_training_data, train_model
 from matplotlib.image import imread, imsave
@@ -21,7 +21,8 @@ parser.add_argument('--dims', metavar='dims', type=str, default='XY',
                 help='dimensions of the image (XY,YX,XYC,YXC, default=XY)')
 parser.add_argument('--clipping', metavar='clipping', type=str, default='minmax',
                 help='clipping approach (imageclip,minmax,zeromax default=minmax) \n \t imageclip: make output image in the same range input. \n \t minmax: apply min max normalization and makes between 0 and 1. \n \t zeromax: clip between 0 and max of input image')
-
+parser.add_argument('--format-out', metavar='format-out', type=str, default='.png',
+                help='format of the output. make png makes a RGB image in gray scale if XY(png, .tif default: .png)')
 args = parser.parse_args()
 print(args)
 
@@ -70,8 +71,8 @@ def denoise_images(images_path, output_path):
                     print('Org. shape: ', img.shape, 'New shape:', img[...,0].shape)
                 img = img[...,0] # taking the red channel
             pred = model.predict(img, axes=axes)
-            f_out_d = os.path.join(output_path, 'Denois-' + f.replace(args.fileName.replace('*',''),'.png'))
-            f_out_s = os.path.join(output_path, 'Sample-' + f.replace(args.fileName.replace('*',''),'.png'))
+            f_out_d = os.path.join(output_path, 'Denois-' + f.replace(args.fileName.replace('*',''),args.format_out))
+            f_out_s = os.path.join(output_path, 'Sample-' + f.replace(args.fileName.replace('*',''),args.format_out))
             print('pred.max(): ', pred.max(), 'pred.min()', pred.min())
             print('img.max(): ', img.max(), 'img.min()', img.min())
             if args.clipping == 'imageclip':
@@ -84,11 +85,19 @@ def denoise_images(images_path, output_path):
                 ub = 1
                 lb = 0
             else:
-                raise ValueException('Invalid input value clipping not supported.' + args.clipping + '. Check --help for datails.')
-            print('saving file denoised : ', f_out_d)
-            imsave(f_out_d, clip(pred, lb, ub), cmap='gray')
-            print('saving file input to network: ', f_out_s)
-            imsave(f_out_s, clip(img, lb, ub), cmap='gray')
+                raise Exception('Invalid input value clipping not supported.' + args.clipping + '. Check --help for datails.')
+            if args.format_out == '.png':
+                print('saving file denoised : ', f_out_d)
+                imsave(f_out_d, clip(pred, lb, ub), cmap='gray')
+                print('saving file input to network: ', f_out_s)
+                imsave(f_out_s, clip(img, lb, ub), cmap='gray')
+            elif args.format_out == '.tif':
+                print('saving file denoised : ', f_out_d)
+                tiff.imsave(f_out_d, clip(pred, lb, ub))
+                print('saving file input to network: ', f_out_s)
+                tiff.imsave(f_out_s, clip(img, lb, ub))
+            else:
+                raise Exception('Other format not supported' + args.format_out)
 # Creating the path of denoised images
 output_path = create_output_directory(args.output)
 print('Output path is: ', output_path )
