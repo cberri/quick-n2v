@@ -21,8 +21,12 @@ parser.add_argument('--dims', metavar='dims', type=str, default='XY',
                 help='dimensions of the image (XY,YX,XYC,YXC, default=XY)')
 parser.add_argument('--clipping', metavar='clipping', type=str, default='minmax',
                 help='clipping approach (imageclip,minmax,zeromax default=minmax) \n \t imageclip: make output image in the same range input. \n \t minmax: apply min max normalization and makes between 0 and 1. \n \t zeromax: clip between 0 and max of input image')
-parser.add_argument('--format-out', metavar='format-out', type=str, default='.png',
-                help='format of the output. make png makes a RGB image in gray scale if XY(png, .tif default: .png)')
+parser.add_argument('--formatOut', metavar='formatOut', type=str, default='.png',
+                help='format of the output. Noticed that when png and XY it makes a RGB image in gray scale (png, .tif default: .png)')
+parser.add_argument('--saveInputs', metavar='', type=str, default='n',
+                help='save inputs to the network that maybe have been converted (y, n default: n)')
+parser.add_argument('--stack', metavar='', type=str, default='n',
+                help='save inputs to the network that maybe have been converted (y, n default: n)')
 args = parser.parse_args()
 print(args)
 
@@ -71,8 +75,11 @@ def denoise_images(images_path, output_path):
                     print('Org. shape: ', img.shape, 'New shape:', img[...,0].shape)
                 img = img[...,0] # taking the red channel
             pred = model.predict(img, axes=axes)
-            f_out_d = os.path.join(output_path, 'Denois-' + f.replace(args.fileName.replace('*',''),args.format_out))
-            f_out_s = os.path.join(output_path, 'Sample-' + f.replace(args.fileName.replace('*',''),args.format_out))
+            if args.saveInputs=='y':
+                f_out_d = os.path.join(output_path, 'Denoised-' + f.replace(args.fileName.replace('*',''),args.formatOut))
+                f_out_s = os.path.join(output_path, 'Input-' + f.replace(args.fileName.replace('*',''),args.formatOut))
+            else:
+                f_out_d = os.path.join(output_path, f.replace(args.fileName.replace('*', ''), args.formatOut))
             print('pred.max(): ', pred.max(), 'pred.min()', pred.min())
             print('img.max(): ', img.max(), 'img.min()', img.min())
             if args.clipping == 'imageclip':
@@ -86,18 +93,20 @@ def denoise_images(images_path, output_path):
                 lb = 0
             else:
                 raise Exception('Invalid input value clipping not supported.' + args.clipping + '. Check --help for datails.')
-            if args.format_out == '.png':
+            if args.formatOut == '.png':
                 print('saving file denoised : ', f_out_d)
                 imsave(f_out_d, clip(pred, lb, ub), cmap='gray')
-                print('saving file input to network: ', f_out_s)
-                imsave(f_out_s, clip(img, lb, ub), cmap='gray')
-            elif args.format_out == '.tif':
+                if args.saveInputs=='y':
+                    print('saving file input to network: ', f_out_s)
+                    imsave(f_out_s, clip(img, lb, ub), cmap='gray')
+            elif args.formatOut == '.tif':
                 print('saving file denoised : ', f_out_d)
                 tiff.imsave(f_out_d, clip(pred, lb, ub))
-                print('saving file input to network: ', f_out_s)
-                tiff.imsave(f_out_s, clip(img, lb, ub))
+                if args.saveInputs == 'y':
+                    print('saving file input to network: ', f_out_s)
+                    tiff.imsave(f_out_s, clip(img, lb, ub))
             else:
-                raise Exception('Other format not supported' + args.format_out)
+                raise Exception('Supported output formats png and tif. Other format not supported' + args.formatOut)
 # Creating the path of denoised images
 output_path = create_output_directory(args.output)
 print('Output path is: ', output_path )
