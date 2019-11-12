@@ -1,4 +1,5 @@
 import argparse
+import datetime
 import os
 import tifffile as tiff
 from tqdm import tqdm
@@ -32,10 +33,11 @@ print(args)
 
 def create_output_directory(output_path):
     if output_path is None:
-        output_path = os.path.join(os.path.dirname(args.target),'denoised_images')
+        output_path = os.path.join(os.path.dirname(args.target),'denoised_images'+str(datetime.datetime.now()).replace(' ','_').replace('.','p').replace(':','T'))
     if not os.path.exists(output_path):
         os.mkdir(output_path)
     return output_path
+
 def clip(pred, lb, ub):
     if args.clipping == 'zeromax':
         pred = pred.copy()
