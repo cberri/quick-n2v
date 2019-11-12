@@ -7,7 +7,8 @@ from vtools import generate_args, prepare_training_data, train_model
 from matplotlib.image import imread, imsave
 from n2v.models import N2V
 import numpy as np
-
+import tempfile
+import re
 
 parser = argparse.ArgumentParser(description='Denoise video with N2V')
 parser.add_argument('--target', metavar='target', type=str, default='video_images',
@@ -30,6 +31,8 @@ parser.add_argument('--stack', metavar='', type=str, default='n',
                 help='save inputs to the network that maybe have been converted (y, n default: n)')
 args = parser.parse_args()
 print(args)
+if args.stack == 'y':
+    assert args.fileName.endswith('.tif') and args.formatOut.endswith('.tif'), 'Stack selected. The input files need to be tif files.'
 
 def create_output_directory(output_path):
     if output_path is None:
@@ -45,6 +48,74 @@ def clip(pred, lb, ub):
     pred = (pred-pred.min())/(pred.max()-pred.min())
     pred = (ub-lb)*pred + lb
     return pred
+def create_unravel_folder(images_path):
+    '''
+    Creates an unraveled folder containing all the images from a image directory of stacked images_path
+    args:
+    images_path:Path to stacked images_path
+    return:
+    temporary path of stacked images
+    '''
+    for f in tqdm(os.listdir(images_path)):
+        temp_dir = tempfile.mkdtemp(suffix='quick-n2v')
+        if os.path.isfile(os.path.join(images_path,f)) and f.endswith('.tif'):
+            img = tiff.imread(os.path.join(images_path,f))
+            for ii, im in enumerate(img):
+                f_out = os.path.join(temp_dir, f.split('.tif')[0] + '.' +str(ii) + '.tif')
+                tiff.imsave(f_out, im)
+    return temp_dir
+
+def tryint(s):
+    try:
+        return int(s)
+    except:
+        return s
+
+def alphanum_key(s):
+    """ Turn a string into a list of string and number chunks.
+        "z23a" -> ["z", 23, "a"]
+    """
+    return [ tryint(c) for c in re.split('([0-9]+)', s) ]
+
+def sort_nicely(l):
+    """ Sort the given list in the way that humans expect.
+    """
+    l.sort(key=alphanum_key)
+
+def concatenate_unravel_folder(images_path, output_path):
+    '''
+    concatenates an unraveled stacked image again into stacked images_path
+    args:
+    images_path: path to the unraveled images_path
+    output_path: path to directory to save stacked images
+    '''
+    # Collect all files relevant to the stacking
+    all_files_relevant = []
+    print('Find relevant files')
+    for f in tqdm(os.listdir(images_path)):
+        temp_dir = tempfile.mkdtemp(suffix='quick-n2v')
+        if os.path.isfile(os.path.join(images_path,f)) and f.endswith('.tif'):
+            all_files_relevant.append(f)
+    sort_nicely(all_files_relevant)
+    # create stacks once the images are sorted
+    n0 = -1
+    image_paths = []
+    print('Concatenating images...')
+    N = len(all_files_relevant)-1
+    for i, f in tqdm(enumerate(all_files_relevant)):
+        n1 = int(f.split('.')[-2])
+        if n1<n0 or i==N:
+            # generate stacked image
+            file_name_stack = os.path.basename(image_paths[0]).split('.0.tif')[0] + '.tif'
+            f_out = os.path.join(output_path, file_name_stack )
+            imgs = np.array([tiff.imread(img_path) for img_path in image_paths])
+            tiff.imsave(f_out,imgs)
+            n0 = -1
+            image_paths = []
+        else:
+            # sequence continues
+            image_paths.append(os.path.join(images_path,f))
+            n0 = n1
 
 def denoise_images(images_path, output_path):
     model_name = 'N2V'
@@ -112,9 +183,22 @@ def denoise_images(images_path, output_path):
 # Creating the path of denoised images
 output_path = create_output_directory(args.output)
 print('Output path is: ', output_path )
-if args.train=='y' or not os.path.exists('models/N2V/weights_best.h5'):
-    training_args = generate_args(data_path=args.target, fileName=args.fileName, dims=args.dims)
-    model, X, X_val = prepare_training_data(training_args)
-    history = train_model(model, X, X_val)
-# apply on video
-denoise_images(args.target, output_path)
+if args.stack == 'y':
+    print('WARNING: Stack input selected. temporary files will be generated')
+    unravel_path = create_unravel_folder(args.target)
+    unravel_output_path = create_output_directory(os.path.join(unravel_path,'unraveled_denoised'))
+    if args.train=='y' or not os.path.exists('models/N2V/weights_best.h5'):
+        training_args = generate_args(data_path=unravel_path, fileName=args.fileName, dims=args.dims)
+        model, X, X_val = prepare_training_data(training_args)
+        history = train_model(model, X, X_val)
+    # apply on video
+    denoise_images(unravel_path, unravel_output_path)
+    # concatenate images in output path
+    concatenate_unravel_folder(unravel_output_path, output_path)
+else:
+    if args.train=='y' or not os.path.exists('models/N2V/weights_best.h5'):
+        training_args = generate_args(data_path=args.target, fileName=args.fileName, dims=args.dims)
+        model, X, X_val = prepare_training_data(training_args)
+        history = train_model(model, X, X_val)
+    # apply on video
+    denoise_images(args.target, output_path)
