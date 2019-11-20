@@ -9,6 +9,7 @@ from n2v.models import N2V
 import numpy as np
 import tempfile
 import re
+import shutil
 
 parser = argparse.ArgumentParser(description='Denoise video with N2V')
 parser.add_argument('--target', metavar='target', type=str, default='video_images',
@@ -22,7 +23,7 @@ parser.add_argument('--fileName', metavar='fileName', type=str, default='*.png',
 parser.add_argument('--dims', metavar='dims', type=str, default='XY',
                 help='dimensions of the image (XY,YX,XYC,YXC, default=XY)')
 parser.add_argument('--clipping', metavar='clipping', type=str, default='minmax',
-                help='clipping approach (imageclip,minmax,zeromax default=minmax) \n \t imageclip: make output image in the same range input. \n \t minmax: apply min max normalization and makes between 0 and 1. \n \t zeromax: clip between 0 and max of input image')
+                help='clipping approach (imageclip,minmax,zeromax default=minmax) \n \t imageclip: make output image in the same range input.  minmax: apply min max normalization and makes between 0 and 1. zeromax: clip between 0 and max of input image. 0255: means clips prediction from 0 to 255')
 parser.add_argument('--formatOut', metavar='formatOut', type=str, default='.png',
                 help='format of the output. Noticed that when png and XY it makes a RGB image in gray scale (png, .tif default: .png)')
 parser.add_argument('--saveInputs', metavar='', type=str, default='n',
@@ -32,7 +33,7 @@ parser.add_argument('--stack', metavar='', type=str, default='n',
 args = parser.parse_args()
 print(args)
 if args.stack == 'y':
-    assert args.fileName.endswith('.tif') and args.formatOut.endswith('.tif'), 'Stack selected. The input files need to be tif files.'
+    assert args.fileName.endswith('.tif') and args.formatOut.endswith('.tif'), 'Stacked image input is "activated". Therefore, formatOut=.tif and fileName=*.tif must be selected'
 
 def create_output_directory(output_path):
     if output_path is None:
@@ -42,9 +43,15 @@ def create_output_directory(output_path):
     return output_path
 
 def clip(pred, lb, ub):
-    if args.clipping == 'zeromax':
+    if args.clipping == 'zeromax' or args.clipping == '0255':
         pred = pred.copy()
         pred[pred<0] = 0
+    if args.clipping == '0255':
+        pred = pred.copy()
+        pred[pred>255] = 255
+        # avoids normalization
+        return pred
+
     pred = (pred-pred.min())/(pred.max()-pred.min())
     pred = (ub-lb)*pred + lb
     return pred
@@ -56,8 +63,9 @@ def create_unravel_folder(images_path):
     return:
     temporary path of stacked images
     '''
+    temp_dir = tempfile.mkdtemp(prefix='quick-n2v')
+    print('Temporary files are stored in: ', temp_dir)
     for f in tqdm(os.listdir(images_path)):
-        temp_dir = tempfile.mkdtemp(suffix='quick-n2v')
         if os.path.isfile(os.path.join(images_path,f)) and f.endswith('.tif'):
             img = tiff.imread(os.path.join(images_path,f))
             for ii, im in enumerate(img):
@@ -91,9 +99,9 @@ def concatenate_unravel_folder(images_path, output_path):
     '''
     # Collect all files relevant to the stacking
     all_files_relevant = []
-    print('Find relevant files')
+    print('Find relevant files in ', images_path)
     for f in tqdm(os.listdir(images_path)):
-        temp_dir = tempfile.mkdtemp(suffix='quick-n2v')
+
         if os.path.isfile(os.path.join(images_path,f)) and f.endswith('.tif'):
             all_files_relevant.append(f)
     sort_nicely(all_files_relevant)
@@ -164,6 +172,9 @@ def denoise_images(images_path, output_path):
             elif args.clipping == 'minmax':
                 ub = 1
                 lb = 0
+            elif args.clipping == '0255':
+                    ub = 1
+                    lb = 0
             else:
                 raise Exception('Invalid input value clipping not supported.' + args.clipping + '. Check --help for datails.')
             if args.formatOut == '.png':
@@ -195,6 +206,9 @@ if args.stack == 'y':
     denoise_images(unravel_path, unravel_output_path)
     # concatenate images in output path
     concatenate_unravel_folder(unravel_output_path, output_path)
+    print("Removing the temp folder: ", unravel_path)
+    shutil.rmtree(unravel_path)
+
 else:
     if args.train=='y' or not os.path.exists('models/N2V/weights_best.h5'):
         training_args = generate_args(data_path=args.target, fileName=args.fileName, dims=args.dims)
