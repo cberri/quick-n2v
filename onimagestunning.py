@@ -30,7 +30,6 @@ parser.add_argument('--stack', metavar='', type=str, default='n',
                 help='process images as stack of 2D images (y, n default: n)')
 parser.add_argument("--name", help="name of your network", default='N2V')
 parser.add_argument("--dataPath", help="The path to your training data")
-parser.add_argument("--fileName", help="name of your training data file", default="*.tif")
 parser.add_argument("--validationFraction", help="Fraction of data you want to use for validation (percent)",
                     default=5.0, type=float)
 parser.add_argument("--patchSizeXY", help="XY-size of your training patches", default=64, type=int)
