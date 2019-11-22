@@ -211,7 +211,12 @@ if args.stack == 'y':
 
 else:
     if args.train=='y' or not os.path.exists('models/N2V/weights_best.h5'):
-        training_args = generate_args(data_path=args.target, fileName=args.fileName, dims=args.dims)
+        training_args = generate_args(data_path=args.target, fileName=args.fileName, dims=args.dims,
+                                      baseDir=args.baseDir, name=args.Name, validationFraction=args.validationFraction,
+                                      patchSizeXY=args.patchSizeXY, patchSizeZ=args.patchSizeZ, epochs=args.epochs,
+                                      stepsPerEpoch=args.stepsPerEpoch, batchSize=args.batchSize, netDepth=args.netDepth,
+                                      netKernelSize=args.netKernelSize, n2vPercPix=args.n2vPercPix,
+                                      learningRate=args.learningRate, unet_n_first=args.unet_n_first)
         model, X, X_val = prepare_training_data(training_args)
         history = train_model(model, X, X_val)
     # apply on video
