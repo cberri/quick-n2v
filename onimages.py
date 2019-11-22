@@ -23,7 +23,7 @@ parser.add_argument('--fileName', metavar='fileName', type=str, default='*.png',
 parser.add_argument('--dims', metavar='dims', type=str, default='XY',
                 help='dimensions of the image (XY,YX,XYC,YXC, default=XY)')
 parser.add_argument('--clipping', metavar='clipping', type=str, default='minmax',
-                help='clipping approach (imageclip,minmax,zeromax default=minmax) \n \t imageclip: make output image in the same range input.  minmax: apply min max normalization and makes between 0 and 1. zeromax: clip between 0 and max of input image. 0255: means clips prediction from 0 to 255')
+                help='clipping approach (imageclip,minmax,zeromax,  0255, default=minmax) \n \t imageclip: make output image in the same range input.  minmax: apply min max normalization and makes between 0 and 1. zeromax: clip between 0 and max of input image. 0255: means clips prediction from 0 to 255')
 parser.add_argument('--formatOut', metavar='formatOut', type=str, default='.png',
                 help='format of the output. Noticed that when png and XY it makes a RGB image in gray scale (png, .tif default: .png)')
 parser.add_argument('--saveInputs', metavar='', type=str, default='n',
@@ -51,7 +51,6 @@ def clip(pred, lb, ub):
         pred[pred>255] = 255
         # avoids normalization
         return pred
-
     pred = (pred-pred.min())/(pred.max()-pred.min())
     pred = (ub-lb)*pred + lb
     return pred
@@ -173,8 +172,8 @@ def denoise_images(images_path, output_path):
                 ub = 1
                 lb = 0
             elif args.clipping == '0255':
-                    ub = 1
-                    lb = 0
+                ub = 1
+                lb = 0
             else:
                 raise Exception('Invalid input value clipping not supported.' + args.clipping + '. Check --help for datails.')
             if args.formatOut == '.png':
@@ -211,12 +210,7 @@ if args.stack == 'y':
 
 else:
     if args.train=='y' or not os.path.exists('models/N2V/weights_best.h5'):
-        training_args = generate_args(data_path=args.target, fileName=args.fileName, dims=args.dims,
-                                      baseDir=args.baseDir, name=args.Name, validationFraction=args.validationFraction,
-                                      patchSizeXY=args.patchSizeXY, patchSizeZ=args.patchSizeZ, epochs=args.epochs,
-                                      stepsPerEpoch=args.stepsPerEpoch, batchSize=args.batchSize, netDepth=args.netDepth,
-                                      netKernelSize=args.netKernelSize, n2vPercPix=args.n2vPercPix,
-                                      learningRate=args.learningRate, unet_n_first=args.unet_n_first)
+        training_args = generate_args(data_path=args.target, fileName=args.fileName, dims=args.dims)
         model, X, X_val = prepare_training_data(training_args)
         history = train_model(model, X, X_val)
     # apply on video
