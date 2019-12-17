@@ -18,14 +18,14 @@ parser.add_argument('--output', metavar='output', type=str, default = None,
                 help='output directory full path')
 parser.add_argument('--train', metavar='train', type=str, default='n',
                 help='force train? y or n (default=n)')
-parser.add_argument('--fileName', metavar='fileName', type=str, default='*.png',
-                help='file name ending (default=*.png)')
+parser.add_argument('--fileName', metavar='fileName', type=str, default='*.tif',
+                help='file name ending (default=*.tif)')
 parser.add_argument('--dims', metavar='dims', type=str, default='XY',
                 help='dimensions of the image (XY,YX,XYC,YXC, default=XY)')
 parser.add_argument('--clipping', metavar='clipping', type=str, default='minmax',
-                help='clipping approach (imageclip,minmax,zeromax default=minmax) \n \t imageclip: make output image in the same range input.  minmax: apply min max normalization and makes between 0 and 1. zeromax: clip between 0 and max of input image. 0255: means clips prediction from 0 to 255')
-parser.add_argument('--formatOut', metavar='formatOut', type=str, default='.png',
-                help='format of the output. Noticed that when png and XY it makes a RGB image in gray scale (png, .tif default: .png)')
+                help='clipping approach (imageclip,minmax,zeromax,  0255, default=minmax) \n \t imageclip: make output image in the same range input.  minmax: apply min max normalization and makes between 0 and 1. zeromax: clip between 0 and max of input image. 0255: means clips prediction from 0 to 255')
+parser.add_argument('--formatOut', metavar='formatOut', type=str, default='.tif',
+                help='format of the output. Noticed that when png and XY it makes a RGB image in gray scale (png, .tif default: .tif)')
 parser.add_argument('--saveInputs', metavar='', type=str, default='n',
                 help='save inputs to the network that maybe have been converted (y, n default: n)')
 parser.add_argument('--stack', metavar='', type=str, default='n',
@@ -51,7 +51,6 @@ def clip(pred, lb, ub):
         pred[pred>255] = 255
         # avoids normalization
         return pred
-
     pred = (pred-pred.min())/(pred.max()-pred.min())
     pred = (ub-lb)*pred + lb
     return pred
@@ -112,6 +111,7 @@ def concatenate_unravel_folder(images_path, output_path):
     N = len(all_files_relevant)-1
     for i, f in tqdm(enumerate(all_files_relevant)):
         n1 = int(f.split('.')[-2])
+        image_paths.append(os.path.join(images_path,f))
         if n1<n0 or i==N:
             # generate stacked image
             file_name_stack = os.path.basename(image_paths[0]).split('.0.tif')[0] + '.tif'
@@ -122,7 +122,6 @@ def concatenate_unravel_folder(images_path, output_path):
             image_paths = []
         else:
             # sequence continues
-            image_paths.append(os.path.join(images_path,f))
             n0 = n1
 
 def denoise_images(images_path, output_path):
@@ -140,6 +139,10 @@ def denoise_images(images_path, output_path):
                 axes = 'YX'
             elif len(img.shape)==3 and args.dims=='N':
                 axes = 'YXC'
+            elif len(img.shape) == 4 and args.dims == 'N':
+                axes = 'XYZ'
+            elif len(img.shape) == 5 and args.dims == 'N':
+                axes = 'ZYXC'
             else:
                 axes = args.dims
             # Ensures that the input has 3 channels if read image axes are XYC or YXC
@@ -173,8 +176,8 @@ def denoise_images(images_path, output_path):
                 ub = 1
                 lb = 0
             elif args.clipping == '0255':
-                    ub = 1
-                    lb = 0
+                ub = 1
+                lb = 0
             else:
                 raise Exception('Invalid input value clipping not supported.' + args.clipping + '. Check --help for datails.')
             if args.formatOut == '.png':
@@ -211,12 +214,7 @@ if args.stack == 'y':
 
 else:
     if args.train=='y' or not os.path.exists('models/N2V/weights_best.h5'):
-        training_args = generate_args(data_path=args.target, fileName=args.fileName, dims=args.dims,
-                                      baseDir=args.baseDir, name=args.Name, validationFraction=args.validationFraction,
-                                      patchSizeXY=args.patchSizeXY, patchSizeZ=args.patchSizeZ, epochs=args.epochs,
-                                      stepsPerEpoch=args.stepsPerEpoch, batchSize=args.batchSize, netDepth=args.netDepth,
-                                      netKernelSize=args.netKernelSize, n2vPercPix=args.n2vPercPix,
-                                      learningRate=args.learningRate, unet_n_first=args.unet_n_first)
+        training_args = generate_args(data_path=args.target, fileName=args.fileName, dims=args.dims)
         model, X, X_val = prepare_training_data(training_args)
         history = train_model(model, X, X_val)
     # apply on video
