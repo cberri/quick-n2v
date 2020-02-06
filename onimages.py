@@ -125,6 +125,12 @@ def concatenate_unravel_folder(images_path, output_path):
             n0 = n1
 
 def denoise_images(images_path, output_path):
+    '''
+    Denoise images in a path and store the resutl into output path
+    :param images_path:
+    :param output_path:
+    :return:
+    '''
     model_name = 'N2V'
     basedir = 'models'
     model = N2V(config=None, name=model_name, basedir=basedir)
@@ -199,7 +205,9 @@ output_path = create_output_directory(args.output)
 print('Output path is: ', output_path )
 if args.stack == 'y':
     print('WARNING: Stack input selected. temporary files will be generated')
+    # create individual images for every slides in a temporary folder. unravel_path is the temporary folder.
     unravel_path = create_unravel_folder(args.target)
+    # create an output folder in the temporary folder
     unravel_output_path = create_output_directory(os.path.join(unravel_path,'unraveled_denoised'))
     if args.train=='y' or not os.path.exists('models/N2V/weights_best.h5'):
         training_args = generate_args(data_path=unravel_path, fileName=args.fileName, dims=args.dims)
