@@ -10,30 +10,30 @@ import numpy as np
 import tempfile
 import re
 import shutil
-
-parser = argparse.ArgumentParser(description='Denoise video with N2V')
-parser.add_argument('--target', metavar='target', type=str, default='video_images',
-                help='target directory containing png images full path')
-parser.add_argument('--output', metavar='output', type=str, default = None,
-                help='output directory full path')
-parser.add_argument('--train', metavar='train', type=str, default='n',
-                help='force train? y or n (default=n)')
-parser.add_argument('--fileName', metavar='fileName', type=str, default='*.tif',
-                help='file name ending (default=*.tif)')
-parser.add_argument('--dims', metavar='dims', type=str, default='XY',
-                help='dimensions of the image (XY,YX,XYC,YXC, default=XY)')
-parser.add_argument('--clipping', metavar='clipping', type=str, default='minmax',
-                help='clipping approach (imageclip,minmax,zeromax,  0255, default=minmax) \n \t imageclip: make output image in the same range input.  minmax: apply min max normalization and makes between 0 and 1. zeromax: clip between 0 and max of input image. 0255: means clips prediction from 0 to 255')
-parser.add_argument('--formatOut', metavar='formatOut', type=str, default='.tif',
-                help='format of the output. Noticed that when png and XY it makes a RGB image in gray scale (png, .tif default: .tif)')
-parser.add_argument('--saveInputs', metavar='', type=str, default='n',
-                help='save inputs to the network that maybe have been converted (y, n default: n)')
-parser.add_argument('--stack', metavar='', type=str, default='n',
-                help='save inputs to the network that maybe have been converted (y, n default: n)')
-args = parser.parse_args()
-print(args)
-if args.stack == 'y':
-    assert args.fileName.endswith('.tif') and args.formatOut.endswith('.tif'), 'Stacked image input is "activated". Therefore, formatOut=.tif and fileName=*.tif must be selected'
+if __name__=='__main__':
+    parser = argparse.ArgumentParser(description='Denoise video with N2V')
+    parser.add_argument('--target', metavar='target', type=str, default='video_images',
+                    help='target directory containing png images full path')
+    parser.add_argument('--output', metavar='output', type=str, default = None,
+                    help='output directory full path')
+    parser.add_argument('--train', metavar='train', type=str, default='n',
+                    help='force train? y or n (default=n)')
+    parser.add_argument('--fileName', metavar='fileName', type=str, default='*.tif',
+                    help='file name ending (default=*.tif)')
+    parser.add_argument('--dims', metavar='dims', type=str, default='XY',
+                    help='dimensions of the image (XY,YX,XYC,YXC, default=XY)')
+    parser.add_argument('--clipping', metavar='clipping', type=str, default='minmax',
+                    help='clipping approach (imageclip,minmax,zeromax,  0255, default=minmax) \n \t imageclip: make output image in the same range input.  minmax: apply min max normalization and makes between 0 and 1. zeromax: clip between 0 and max of input image. 0255: means clips prediction from 0 to 255')
+    parser.add_argument('--formatOut', metavar='formatOut', type=str, default='.tif',
+                    help='format of the output. Noticed that when png and XY it makes a RGB image in gray scale (png, .tif default: .tif)')
+    parser.add_argument('--saveInputs', metavar='', type=str, default='n',
+                    help='save inputs to the network that maybe have been converted (y, n default: n)')
+    parser.add_argument('--stack', metavar='', type=str, default='n',
+                    help='save inputs to the network that maybe have been converted (y, n default: n)')
+    args = parser.parse_args()
+    print(args)
+    if args.stack == 'y':
+        assert args.fileName.endswith('.tif') and args.formatOut.endswith('.tif'), 'Stacked image input is "activated". Therefore, formatOut=.tif and fileName=*.tif must be selected'
 
 def create_output_directory(output_path):
     if output_path is None:
@@ -201,29 +201,30 @@ def denoise_images(images_path, output_path):
             else:
                 raise Exception('Supported output formats png and tif. Other format not supported' + args.formatOut)
 # Creating the path of denoised images
-output_path = create_output_directory(args.output)
-print('Output path is: ', output_path )
-if args.stack == 'y':
-    print('WARNING: Stack input selected. temporary files will be generated')
-    # create individual images for every slides in a temporary folder. unravel_path is the temporary folder.
-    unravel_path = create_unravel_folder(args.target)
-    # create an output folder in the temporary folder
-    unravel_output_path = create_output_directory(os.path.join(unravel_path,'unraveled_denoised'))
-    if args.train=='y' or not os.path.exists('models/N2V/weights_best.h5'):
-        training_args = generate_args(data_path=unravel_path, fileName=args.fileName, dims=args.dims)
-        model, X, X_val = prepare_training_data(training_args)
-        history = train_model(model, X, X_val)
-    # apply on video
-    denoise_images(unravel_path, unravel_output_path)
-    # concatenate images in output path
-    concatenate_unravel_folder(unravel_output_path, output_path)
-    print("Removing the temp folder: ", unravel_path)
-    shutil.rmtree(unravel_path)
+if __name__ == '__main__':
+    output_path = create_output_directory(args.output)
+    print('Output path is: ', output_path )
+    if args.stack == 'y':
+        print('WARNING: Stack input selected. temporary files will be generated')
+        # create individual images for every slides in a temporary folder. unravel_path is the temporary folder.
+        unravel_path = create_unravel_folder(args.target)
+        # create an output folder in the temporary folder
+        unravel_output_path = create_output_directory(os.path.join(unravel_path,'unraveled_denoised'))
+        if args.train=='y' or not os.path.exists('models/N2V/weights_best.h5'):
+            training_args = generate_args(data_path=unravel_path, fileName=args.fileName, dims=args.dims)
+            model, X, X_val = prepare_training_data(training_args)
+            history = train_model(model, X, X_val)
+        # apply on video
+        denoise_images(unravel_path, unravel_output_path)
+        # concatenate images in output path
+        concatenate_unravel_folder(unravel_output_path, output_path)
+        print("Removing the temp folder: ", unravel_path)
+        shutil.rmtree(unravel_path)
 
-else:
-    if args.train=='y' or not os.path.exists('models/N2V/weights_best.h5'):
-        training_args = generate_args(data_path=args.target, fileName=args.fileName, dims=args.dims)
-        model, X, X_val = prepare_training_data(training_args)
-        history = train_model(model, X, X_val)
-    # apply on video
-    denoise_images(args.target, output_path)
+    else:
+        if args.train=='y' or not os.path.exists('models/N2V/weights_best.h5'):
+            training_args = generate_args(data_path=args.target, fileName=args.fileName, dims=args.dims)
+            model, X, X_val = prepare_training_data(training_args)
+            history = train_model(model, X, X_val)
+        # apply on video
+        denoise_images(args.target, output_path)
