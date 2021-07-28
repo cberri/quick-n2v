@@ -13,12 +13,17 @@ Running the scripts
 For videos (avi)
 
 ```
-$ python onvideos.py --target FULL_PATH_TO_VIDEO_AVI
+$ python onvideo.py --target FULL_PATH_TO_VIDEO_AVI
 ``` 
 
 For images (png)
 ```
-$ python onvideos.py --target FULL_PATH_TO_DIRECTORY
+$ python onimages.py --target FULL_PATH_TO_IMAGES
+```
+
+For more parameters (png)
+```
+$ python onimagestunning.py --target FULL_PATH_TO_IMAGES
 ```
 
 CUDA 10.1 drivers installation Ubuntu 18.04 LTS
@@ -196,7 +201,7 @@ Epoch 1/100
  60/400 [===>..........................] - ETA: 7:24 - loss: 0.9071 - n2v_mse: 0.9071 - n2v_abs: 0.7417^CTraceback (most recent call last):
  ...
 ```
-### Let it runs!
+### Lets run it!
 
 
 
