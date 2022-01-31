@@ -1,3 +1,2 @@
 matplotlib>=3.1.1
--e git://github.com/aiporre/video_tools/tree/v0.1#egg=vtools
-
+-e git://github.com/aiporre/video_tools.git#egg=vtools

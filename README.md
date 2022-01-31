@@ -1,207 +1,137 @@
-## quick-n2v
-Quick scripts to run noise2void tool on videos or images
+## Installation Steps quick-n2v for TF >= 2.0 CUDA 11.0
 
-## Installation
-```
-$ conda create -n n2v pip python==3.7
-$ conda install tensorflow or tensorflow-gpu 
-$ pip install -r requirements.txt
-```
+Source: https://github.com/juglab/n2v
 
-Running the scripts
+1. Create the n2v conda environment
 
-For videos (avi)
+   `$ conda create -n n2v pip python==3.7`
 
-```
-$ python onvideo.py --target FULL_PATH_TO_VIDEO_AVI
-``` 
+   
 
-For images (png)
-```
-$ python onimages.py --target FULL_PATH_TO_IMAGES
-```
+2. Activate the n2v conda environment
 
-For more parameters (png)
-```
-$ python onimagestunning.py --target FULL_PATH_TO_IMAGES
-```
+   `$ conda activate n2v`
 
-CUDA 10.1 drivers installation Ubuntu 18.04 LTS
-(https://medium.com/@exesse/cuda-10-1-installation-on-ubuntu-18-04-lts-d04f89287130)
+   
 
+3. Install tensorflow and keras
 
-### OPTIONAL: Remove previous nvidia drivers
-sudo rm /etc/apt/sources.list.d/cuda*
+   `$ pip install tensorflow-gpu==2.4.0 keras==2.3.1`
 
-sudo apt remove --autoremove nvidia-cuda-toolkit
+   
 
-sudo apt remove --autoremove nvidia-*
+   Test tensorflow installation
 
-### Setup the correct CUDA PPA on your system
-```
-sudo apt update
+   ```python
+   $ python
+   $ import tensorflow as tf
+   $ print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
+   
+   $ Num GPUs Available: X
+   $ exit()
+   ```
 
-sudo add-apt-repository ppa:graphics-drivers/ppa
+   
 
-sudo apt-key adv --fetch-keys  http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/7fa2af80.pub
+4. Install jupyter notebook
 
-sudo bash -c 'echo "deb 
-http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64 /" > /etc/apt/sources.list.d/cuda.list'
+   `$ pip install jupyter`
 
-sudo bash -c 'echo "deb http://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64 /" > /etc/apt/sources.list.d/cuda_learn.list'
-```
+   
 
-### Install CUDA 10.1 packages
-```
-sudo apt update
+5. Clone the quick-n2v repository
 
-sudo apt install cuda-10-1
+   `$ https://github.com/cberri/quick-n2v.git`
 
-sudo apt install libcudnn7
-```
+   
 
-### Specify PATH to CUDA in ~/.profile file (use subline text)
-```
-sudo subl ~/.profile
-```
+6. Install the n2v dependency
 
-### Set PATH for cuda 10.1 installation
-Edit ~/.bashrc
-```
-if [ -d "/usr/local/cuda-10.1/bin/" ]; then
-    export PATH=/usr/local/cuda-10.1/bin${PATH:+:${PATH}}
-    export LD_LIBRARY_PATH=/usr/local/cuda-10.1/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
-fi
-```
-### Restart ubuntu
-```
-sudo reboot
-```
+   `$ pip install -r requirements.txt`
 
-### Verify installation
-```
-nvcc -V
+   
 
-nvidia-smi
-```
-### OPTIONAL TOOLS (https://github.com/wookayin/gpustat)
-```
-pip install gpustat
+7. Install the last n2v release
 
-gpustat –watch
-Install Anaconda3 & Quick Nosie 2 Void Master
-(https://www.digitalocean.com/community/tutorials/how-to-install-anaconda-on-ubuntu-18-04-quickstart)
-```
-### Install curl
-```
-sudo apt update 
+   `$ pip install n2v`
 
-sudo apt upgrade
+   If you want to install a different version of n2v specify the version number. The following works for TF 1.x.x
 
-sudo apt install curl
-```
-### Download anaconda in your temporary directory
-```
-cd /tmp
+   `$ pip install n2v==0.2.1`
 
-curl -O https://repo.anaconda.com/archive/Anaconda3-2019.10-Linux-x86_64.sh
-```
-### Verify installer [OPTIONAL]
-```
-sha256sum Anaconda3-2019.10-Linux-x86_64.sh
+   
 
-	69c64167b8cf3a8fc6b50d12d8476337
-```
-### Install anaconda
-```
-bash Anaconda3-2019.10-Linux-x86_64.sh
-```
+8. Run the n2v help
 
-### Activate the installation
-``` 
-source ~/.bashrc
-```
+   `$ python n2v_Modified_2020-09-21_TF2.py --help`
 
-### Verify installation
-```
-conda list
-```
-## Nosie 2 Void
-### Create conda environment
-```
-conda create -n n2v pip python==3.7
-```
-### Activate the n2v conda environment
-``` 
-conda activate n2v
-```
-### In case of tensorflow GPU use tensorflow-gpu=1.14
-```
-(n2v) >> conda install tensorflow=1.14 keras=2.2.4
-```
-### Install jupyter [OPTIONAL]
-```
-(n2v) >> pip install jupyter
-```
-### Download quick-n2v-master from 
-https://github.com/aiporre/quick-n2v
+   ```python
+   optional arguments:
+     -h, --help            show this help message and exit
+     --target target       path to the target directory containing the input
+                           images
+     --output output       output directory full path
+     --baseDir baseDir     directory path to store the trained models and the
+                           configurations.
+     --train train         force train? y or n (default=n)
+     --dims dims           dimensions of your data, can include: X,Y,Z,C
+                           (default=YX)
+     --fileName fileName   file name ending (default=*.tif)
+     --clipping clipping   clipping approach (imageclip,minmax,zeromax,0255
+                           default=minmax) imageclip: make output image in the
+                           same range input. minmax: apply min max normalization
+                           and makes between 0 and 1. zeromax: clip between 0 and
+                           max of input image, 0255: clip the prediction between
+                           0 and 255.
+     --formatOut formatOut
+                           format of the output. Noticed that when png and XY it
+                           makes a RGB image in gray scale (png, .tif default:
+                           .tif)
+     --saveInputs          save inputs to the network that maybe have been
+                           converted (y, n default: n)
+     --stack               process images as stack of 2D images (y, n default: n)
+     --name name           name of your network default=N2V
+     --validationFraction VALIDATIONFRACTION
+                           Fraction of data you want to use for validation
+                           (percent default=10.0)
+     --patchSizeXY         XY-size of your training patches (default=64)
+     --patchSizeZ PATCHSIZEZ
+                           Z-size of your training patches (default=64)
+     --epochs EPOCHS       number of training epochs (default=100)
+     --stepsPerEpoch STEPSPEREPOCH
+                           number training steps per epoch (default=400)
+     --batchSize BATCHSIZE
+                           size of your training batches (default=64)
+     --netDepth NETDEPTH   depth of your U-Net (default=2)
+     --netKernelSize NETKERNELSIZE
+                           Size of conv. kernels in first layer (default=3)
+     --n2vPercPix N2VPERCPIX
+                           percentage of pixels to manipulated by N2V
+                           (default=1.6)
+     --learningRate LEARNINGRATE
+                           initial learning rate (default=0.0004)
+     --unet_n_first UNET_N_FIRST
+                           number of feature channels in the first u-net layer
+                           (default=32)
+     --gpu GPU             default gpu is 0
+   ```
 
-### Navigate to quick-n2v-master directory
-```
-(n2v) >> sudo apt install git
+   
 
-(n2v) >> pip install -r requirements.txt
-```
-### Look for help functions
-```
-(n2v) >> python onimages.py --help
+   run the n2v training (2D example)
 
-Denoise video with N2V
+   
 
-optional arguments:
-  -h, --help            show this help message and exit
-  --target target       target directory containing png images full path
-  --output output       output directory full path
-  --train train         force train? y or n (default=n)
-  --fileName fileName   file name ending (default=*.tif)
-  --dims dims           dimensions of the image (XY,YX,XYC,YXC, default=XY)
-  --clipping clipping   clipping approach (imageclip,minmax,zeromax, 0255,
-                        default=minmax) imageclip: make output image in the
-                        same range input. minmax: apply min max normalization
-                        and makes between 0 and 1. zeromax: clip between 0 and
-                        max of input image. 0255: means clips prediction from
-                        0 to 255
-  --formatOut formatOut
-                        format of the output. Noticed that when png and XY it
-                        makes a RGB image in gray scale (png, .tif default:
-                        .tif)
-  --saveInputs          save inputs to the network that maybe have been
-                        converted (y, n default: n)
-  --stack               save inputs to the network that maybe have been
-                        converted (y, n default: n)
+   ```python
+   $ python n2v_Modified_2020-09-21_TF2.py --target "C:\PATH_TO_IMAGES" --baseDir "C:\PATH_TO_MODEL_DIR" --dims YX --train y --gpu 0
+   ```
 
+    
 
-Run quick-n2v-master with a sample image (test on CPU)
-```
-### OPTIONAL, in case of multiples GPUs (add the following to the first line of onimages.py to specify the GPU for the task)
-```
-import os
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID" 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0" ### 0, 1, 2, 3
-```
+   run the n2v prediction (2D example)
 
-### Run quick-n2v-master
-```
-(n2v) >> python onimages.py --target ./n2v_input/2019-11-29 --dims YX --train y
+   
 
- ~/tf.py:275: The name tf.summary.FileWriter is deprecated. Please use tf.compat.v1.summary.FileWriter instead.
- ....
-
-Epoch 1/100
- 60/400 [===>..........................] - ETA: 7:24 - loss: 0.9071 - n2v_mse: 0.9071 - n2v_abs: 0.7417^CTraceback (most recent call last):
- ...
-```
-### Lets run it!
-
-
-
+   ```python
+   $ python n2v_Modified_2020-09-21_TF2.py --target "C:\PATH_TO_IMAGES" --baseDir "C:\PATH_TO_MODEL_DIR" --dims YX --train n --gpu 0
+   ```
